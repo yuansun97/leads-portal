@@ -5,10 +5,19 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+/** Only allow same-origin admin paths — blocks //evil and absolute URLs. */
+function safeNextPath(raw: string | null): string {
+  if (!raw) return "/admin/leads";
+  if (!raw.startsWith("/")) return "/admin/leads";
+  if (raw.startsWith("//") || raw.includes("://")) return "/admin/leads";
+  if (!raw.startsWith("/admin")) return "/admin/leads";
+  return raw;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/admin/leads";
+  const nextPath = safeNextPath(searchParams.get("next"));
   const useDevAuth = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
 
   const [email, setEmail] = useState("");

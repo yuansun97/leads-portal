@@ -35,10 +35,13 @@ Then continue with Supabase / Resend / Railway / Vercel below.
 3. Environment variables:
 
 ```
-ENVIRONMENT=production
 DEV_AUTH_BYPASS=false
-DATABASE_URL=postgresql+asyncpg://...
+ENVIRONMENT=production
 CORS_ORIGINS=https://YOUR_VERCEL_DOMAIN
+# optional tuning
+LEAD_CREATE_PER_IP_PER_MINUTE=5
+LEAD_CREATE_PER_EMAIL_PER_HOUR=10
+DATABASE_URL=postgresql+asyncpg://...
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_JWT_SECRET=          # leave empty unless the project still signs HS256

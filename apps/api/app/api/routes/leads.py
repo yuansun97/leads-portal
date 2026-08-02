@@ -2,11 +2,22 @@ from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
+from app.core.rate_limit import enforce_lead_create_rate_limits
 from app.core.security import require_attorney
 from app.db.session import AsyncSessionLocal, get_db
 from app.schemas.leads import LeadListResponse, LeadResponse, LeadUpdate
@@ -24,8 +35,10 @@ async def _kick_outbox(lead_id: UUID) -> None:
 
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_lead(
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
     first_name: Annotated[str, Form(min_length=1, max_length=100)],
     last_name: Annotated[str, Form(min_length=1, max_length=100)],
     email: Annotated[str, Form()],
@@ -34,6 +47,12 @@ async def create_lead(
     from app.schemas.leads import LeadCreateForm
 
     form = LeadCreateForm(first_name=first_name, last_name=last_name, email=email)
+    enforce_lead_create_rate_limits(
+        request,
+        email=str(form.email),
+        per_ip_per_minute=settings.lead_create_per_ip_per_minute,
+        per_email_per_hour=settings.lead_create_per_email_per_hour,
+    )
     service = LeadService(db)
     lead = await service.create_lead(form, resume)
     background_tasks.add_task(_kick_outbox, lead.id)

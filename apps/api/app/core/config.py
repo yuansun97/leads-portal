@@ -40,8 +40,12 @@ class Settings(BaseSettings):
     outbox_batch_size: int = 10
     outbox_max_attempts: int = 8
 
+    # Public POST /leads abuse controls (in-process; per replica).
+    lead_create_per_ip_per_minute: int = 5
+    lead_create_per_email_per_hour: int = 10
+
     # Local-only: when true, Bearer "dev-token" authenticates as an attorney.
-    # Never enable in production.
+    # Never enable in production — startup refuses if both are set.
     dev_auth_bypass: bool = False
 
     @property
@@ -55,6 +59,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() in {"production", "prod"}
+
+    def validate_runtime_guards(self) -> None:
+        if self.is_production and self.dev_auth_bypass:
+            raise RuntimeError(
+                "DEV_AUTH_BYPASS cannot be enabled when ENVIRONMENT is production"
+            )
 
 
 @lru_cache

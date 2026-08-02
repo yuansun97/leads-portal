@@ -107,7 +107,8 @@ Email/password for attorneys. Next.js uses `@supabase/ssr`; the API verifies the
 - Public `POST /leads` is unauthenticated by design — treat it as an attack surface (see spam below).
 - Service role key bypasses Storage RLS; a leak is critical. Keep it only on Railway; rotate if exposed.
 - Signed resume URLs expire (default ~1h) but are shareable while valid; avoid logging them.
-- Local `DEV_AUTH_BYPASS` / Bearer `dev-token` must never be enabled in production.
+- Local `DEV_AUTH_BYPASS` / Bearer `dev-token` must never be enabled in production. API startup refuses to boot if both `ENVIRONMENT=production` and `DEV_AUTH_BYPASS=true`.
+- Login `next=` is restricted to `/admin…` paths to avoid open redirects.
 - File validation is MIME + size only — not AV scanning or content sniffing beyond `content_type`. Malicious PDFs are possible; open resumes in a hardened viewer if threat model requires it.
 - No CSRF token on the public form; browser CORS + same-site defaults help for cookie sessions, but the create API is callable cross-origin without cookies. Rate limits and bot checks matter more than CSRF here.
 
@@ -116,6 +117,7 @@ Email/password for attorneys. Next.js uses `@supabase/ssr`; the API verifies the
 - No CAPTCHA, IP rate limit, or email verification before accept.
 - Attackers can fill storage and trigger email volume (Resend cost / reputation).
 - **Add before public marketing traffic:** edge rate limit (e.g. Vercel/Railway/WAF), honeypot or Turnstile, and optional confirmation email before attorney notify.
+- API also applies an in-process limit on `POST /leads` (default 5/IP/min and 10/email/hour per replica). This is a first line of defense, not a substitute for edge rate limiting under sustained attack.
 - Resend domain reputation: monitor bounces/complaints; keep transactional stream clean.
 
 ### System bottlenecks
