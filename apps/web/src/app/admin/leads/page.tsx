@@ -5,13 +5,22 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Lead,
+  LeadStatus,
   listLeads,
   markReachedOut,
   resolveResumeUrl,
 } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
+
+type StatusFilter = "ALL" | LeadStatus;
+
+const FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "ALL", label: "All" },
+  { id: "PENDING", label: "Pending" },
+  { id: "REACHED_OUT", label: "Reached out" },
+];
 
 async function getAccessToken(): Promise<string | null> {
   if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
@@ -33,12 +42,13 @@ export default function AdminLeadsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const load = useCallback(
-    async (pageToLoad: number) => {
+    async (pageToLoad: number, filter: StatusFilter) => {
       setLoading(true);
       setError(null);
       try {
@@ -47,7 +57,8 @@ export default function AdminLeadsPage() {
           router.push("/login?next=/admin/leads");
           return;
         }
-        const data = await listLeads(token, pageToLoad, PAGE_SIZE);
+        const status = filter === "ALL" ? null : filter;
+        const data = await listLeads(token, pageToLoad, PAGE_SIZE, status);
         setLeads(data.items);
         setTotal(data.total);
         setPage(data.page);
@@ -62,19 +73,25 @@ export default function AdminLeadsPage() {
   );
 
   useEffect(() => {
-    void load(page);
-  }, [load, page]);
+    void load(page, statusFilter);
+  }, [load, page, statusFilter]);
+
+  function onFilterChange(next: StatusFilter) {
+    setStatusFilter(next);
+    setPage(1);
+  }
 
   async function onMarkReachedOut(leadId: string) {
     setUpdatingId(leadId);
     try {
       const token = await getAccessToken();
       if (!token) return;
-      const updated = await markReachedOut(token, leadId);
-      setLeads((current) => current.map((lead) => (lead.id === leadId ? updated : lead)));
+      await markReachedOut(token, leadId);
+      // Reload so Pending filter drops the row and totals stay accurate.
+      await load(page, statusFilter);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
-      await load(page);
+      await load(page, statusFilter);
     } finally {
       setUpdatingId(null);
     }
@@ -93,6 +110,12 @@ export default function AdminLeadsPage() {
 
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(page * PAGE_SIZE, total);
+  const emptyCopy =
+    statusFilter === "PENDING"
+      ? "No pending leads."
+      : statusFilter === "REACHED_OUT"
+        ? "No reached-out leads yet."
+        : "No leads yet. Share the public form to collect the first submission.";
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-10">
@@ -108,13 +131,18 @@ export default function AdminLeadsPage() {
             Leads
           </h1>
           <p className="mt-2 text-[var(--ink-soft)]">
-            {total} prospect{total === 1 ? "" : "s"} in the pipeline
+            {total} prospect{total === 1 ? "" : "s"}
+            {statusFilter === "PENDING"
+              ? " pending"
+              : statusFilter === "REACHED_OUT"
+                ? " reached out"
+                : " in the pipeline"}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => void load(page)}
+            onClick={() => void load(page, statusFilter)}
             className="rounded-xl border border-[var(--line)] bg-white/70 px-4 py-2 text-sm font-medium"
           >
             Refresh
@@ -132,12 +160,33 @@ export default function AdminLeadsPage() {
         </div>
       </header>
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        {FILTERS.map((filter) => {
+          const active = statusFilter === filter.id;
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => onFilterChange(filter.id)}
+              className="rounded-xl px-3 py-1.5 text-sm font-medium transition"
+              style={{
+                background: active ? "var(--ink)" : "rgba(255,252,246,0.8)",
+                color: active ? "var(--paper)" : "var(--ink-soft)",
+                border: active ? "1px solid var(--ink)" : "1px solid var(--line)",
+              }}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
+
       {error ? <p className="mb-4 text-sm text-[var(--danger)]">{error}</p> : null}
       {loading ? (
         <p className="text-[var(--ink-soft)]">Loading leads…</p>
       ) : leads.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-[var(--line)] bg-white/50 px-6 py-16 text-center text-[var(--ink-soft)]">
-          No leads yet. Share the public form to collect the first submission.
+          {emptyCopy}
         </p>
       ) : (
         <>

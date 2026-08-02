@@ -55,12 +55,16 @@ export async function submitLead(formData: FormData): Promise<Lead> {
 export async function listLeads(
   token: string,
   page = 1,
-  pageSize = 20,
+  pageSize = 10,
+  status?: LeadStatus | null,
 ): Promise<LeadListResponse> {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
+  if (status) {
+    params.set("status", status);
+  }
   const response = await fetch(`${API_BASE}/api/v1/leads?${params}`, {
     headers: authHeaders(token),
     cache: "no-store",

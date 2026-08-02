@@ -73,13 +73,26 @@ class LeadService:
         await self.session.refresh(lead)
         return lead
 
-    async def list_leads(self, page: int, page_size: int) -> tuple[list[Lead], int]:
-        total = await self.session.scalar(select(func.count()).select_from(Lead)) or 0
+    async def list_leads(
+        self,
+        page: int,
+        page_size: int,
+        *,
+        status: LeadStatus | None = None,
+    ) -> tuple[list[Lead], int]:
+        filters = []
+        if status is not None:
+            filters.append(Lead.status == status)
+
+        count_stmt = select(func.count()).select_from(Lead)
+        list_stmt = select(Lead).order_by(Lead.created_at.desc())
+        if filters:
+            count_stmt = count_stmt.where(*filters)
+            list_stmt = list_stmt.where(*filters)
+
+        total = await self.session.scalar(count_stmt) or 0
         result = await self.session.execute(
-            select(Lead)
-            .order_by(Lead.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+            list_stmt.offset((page - 1) * page_size).limit(page_size)
         )
         return list(result.scalars().all()), total
 

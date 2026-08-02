@@ -21,6 +21,7 @@ from app.core.config import Settings, get_settings
 from app.core.rate_limit import enforce_lead_create_rate_limits
 from app.core.security import require_attorney
 from app.db.session import AsyncSessionLocal, get_db
+from app.models import LeadStatus
 from app.schemas.leads import LeadListResponse, LeadResponse, LeadUpdate
 from app.services.leads import LeadService
 from app.services.outbox import OutboxWorker
@@ -65,15 +66,16 @@ async def list_leads(
     db: Annotated[AsyncSession, Depends(get_db)],
     _user: Annotated[dict, Depends(require_attorney)],
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 10,
+    status: Annotated[LeadStatus | None, Query()] = None,
 ) -> LeadListResponse:
     service = LeadService(db)
-    items, total = await service.list_leads(page, page_size)
+    items, total = await service.list_leads(page, page_size, status=status)
     total_pages = max(1, (total + page_size - 1) // page_size) if total else 1
     # If the client asks past the last page, clamp by re-fetching the last page.
     if total > 0 and page > total_pages:
         page = total_pages
-        items, total = await service.list_leads(page, page_size)
+        items, total = await service.list_leads(page, page_size, status=status)
     return LeadListResponse(
         items=[service.to_response(item, include_resume_url=True) for item in items],
         total=total,
