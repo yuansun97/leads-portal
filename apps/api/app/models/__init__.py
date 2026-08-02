@@ -37,7 +37,12 @@ class Lead(Base):
     resume_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     resume_content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[LeadStatus] = mapped_column(
-        Enum(LeadStatus, name="lead_status", native_enum=False),
+        Enum(
+            LeadStatus,
+            name="lead_status",
+            native_enum=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
         default=LeadStatus.PENDING,
         index=True,
@@ -60,14 +65,24 @@ class EmailOutbox(Base):
         UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True
     )
     template: Mapped[EmailTemplate] = mapped_column(
-        Enum(EmailTemplate, name="email_template", native_enum=False),
+        Enum(
+            EmailTemplate,
+            name="email_template",
+            native_enum=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
     )
     to_email: Mapped[str] = mapped_column(String(320), nullable=False)
     subject: Mapped[str] = mapped_column(String(255), nullable=False)
     body_text: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[OutboxStatus] = mapped_column(
-        Enum(OutboxStatus, name="outbox_status", native_enum=False),
+        Enum(
+            OutboxStatus,
+            name="outbox_status",
+            native_enum=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
         default=OutboxStatus.PENDING,
         index=True,
