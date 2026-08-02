@@ -108,9 +108,9 @@ Still open before **heavy marketing**: edge/WAF rate limit + CAPTCHA/Turnstile (
 ### Duplicate leads and resume versioning
 
 - **No dedupe in v1.** The same email can submit many times; each creates a new lead + emails. Product risk: attorney noise and duplicate outreach.
-- **Mitigations later:** unique constraint on `(email)` for open `PENDING` leads, or soft-merge UI (“related submissions”).
 - **Resumes are immutable per lead.** Path is `{lead_id}/{filename}`. Re-submit = new lead, not a new version on the same row. There is no resume version history or replace flow.
 - **Orphan files:** if DB insert fails after Storage upload, the object can remain without a lead row. Add compensating delete or upload-after-commit in a later iteration.
+- **v1.1 intent:** merge-on-email + resume versions — see [Post-PRD roadmap](#post-prd-roadmap-v11).
 
 ### Security (residual)
 
@@ -224,6 +224,88 @@ Log lines already emit outbox send failures; ship logs to a drain and add a peri
 - Multi-replica deploys briefly double pollers — safe with row locks; may send faster, not incorrectly if idempotency keys are honored by Resend.
 - Alembic runs on container start — overlapping deploys should use a single migration leader or rely on Postgres DDL locks carefully.
 - Supabase Auth is the stickiest migration dependency (password hashes); keep authorization in FastAPI so IdP swap stays feasible.
+
+## Post-PRD roadmap (v1.1)
+
+Not required by the assignment PRD. These are standard public-intake portal improvements worth scheduling after submission. **v1 remains submission-complete without them.**
+
+### Email dedupe + resume versioning
+
+Merge-on-email rather than a hard `UNIQUE(email)` (a hard unique blocks legitimate re-apply after outreach and fights versioning).
+
+```mermaid
+flowchart LR
+  submit[POST_leads] --> lookup[Find_open_lead_by_email]
+  lookup -->|none| create[Create_lead_PENDING]
+  lookup -->|PENDING_exists| version[Append_resume_version]
+  lookup -->|REACHED_OUT_only| reopen[Reopen_PENDING_plus_version]
+  version --> store[Upload_resume_vN]
+  version --> notify[Attorney_update_email]
+  reopen --> store
+```
+
+| Rule | Behavior |
+|---|---|
+| Identity key | Normalized email (`lower(trim)`) |
+| While `PENDING` | Do not create a second lead; append a resume version on the same row |
+| After `REACHED_OUT` | Reopen to `PENDING` + new version (less attorney noise than a brand-new lead) |
+| Storage shape | Keep `leads` as one row; add `lead_resumes` (`version`, `path`, `filename`, `uploaded_at`) or equivalent history |
+| Emails | Suppress duplicate prospect confirmation spam; attorney gets a short “updated application” note on new version |
+| Admin UI | Latest resume by default + version history |
+
+### Attorney login throttling / MFA
+
+Auth is **Supabase Auth** (not a custom password verifier in FastAPI). Controls belong on the IdP + edge — do not invent password-attempt counters in Next.js.
+
+| Control | Priority | Where |
+|---|---|---|
+| Login rate limit / lockout | Do first | Supabase Auth rate limits + Cloudflare/Vercel WAF on `/login` |
+| CAPTCHA after N failed logins | High | Supabase / Turnstile |
+| MFA / TOTP (2FA) | Medium | Supabase MFA — appropriate for attorneys with PII access |
+| App-level role claim | Medium | `app_metadata.role=attorney` checked in FastAPI `require_attorney` |
+
+### What else (ranked checklist)
+
+**Abuse / public form**
+
+1. CAPTCHA / Turnstile on public submit (bigger win than more in-process limits)
+2. Edge/WAF rate limit (global across IPs/replicas)
+3. Honeypot field
+4. Optional email verification / double opt-in
+
+**Attorney / PII**
+
+5. Invite-only + JWT role claim (any `authenticated` user must not auto-become an attorney)
+6. Audit log (who viewed resume / marked reached out)
+7. Shorter signed URL TTL or on-click signing (list latency + link sharing)
+8. Session hygiene (idle timeout, revoke on password change)
+
+**Data / product**
+
+9. Soft-claim / “I’m working this” (stops double outreach before status flip)
+10. Search / sort by name, email, date
+11. CSV export
+12. Retention / delete (erase lead + storage object)
+
+**File safety**
+
+13. Magic-byte sniff + AV
+14. Sandboxed resume viewer
+
+**Ops**
+
+15. Sentry + outbox lag alert
+16. Indexes on `created_at` and `(status, created_at)`
+
+### Suggested v1.1 build order
+
+1. Turnstile on public form + edge rate limit
+2. Login throttling / lockout (Supabase + edge)
+3. Email dedupe + resume versions
+4. On-click signed URLs (addresses ~775ms list cost from sequential signing)
+5. Attorney role claim in JWT
+6. MFA for attorneys
+7. Audit log + retention
 
 ## Alternatives considered
 

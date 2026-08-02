@@ -145,7 +145,7 @@ Assignment checklist → [docs/SUBMISSION.md](docs/SUBMISSION.md)
 | Required | Doc |
 |---|---|
 | Run locally | [docs/RUN_LOCALLY.md](docs/RUN_LOCALLY.md) |
-| Design | [docs/DESIGN.md](docs/DESIGN.md) |
+| Design | [docs/DESIGN.md](docs/DESIGN.md) — choices, caveats, [post-PRD roadmap](docs/DESIGN.md#post-prd-roadmap-v11) |
 | Agent usage | [docs/AGENT_USAGE.md](docs/AGENT_USAGE.md) |
 | Chat history (Q&A) | [docs/CHAT_HISTORY.md](docs/CHAT_HISTORY.md) |
 | Chat questions (raw) | [docs/CHAT_QUESTIONS_RAW.md](docs/CHAT_QUESTIONS_RAW.md) |
