@@ -12,6 +12,7 @@ gh repo create leads-portal --public --source=. --remote=origin --push
 
 Then continue with Supabase / Resend / Railway / Vercel below.
 
+## 1. Supabase
 
 1. Create a project.
 2. Apply schema: run Alembic against the database URL, or execute [`supabase/schema.sql`](../supabase/schema.sql) in the SQL editor.

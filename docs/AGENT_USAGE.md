@@ -1,30 +1,31 @@
 # Agent usage
 
-**Tools:** Cursor (Grok agent) with shell, file edits, plan mode, MCP `create_project` / `move_agent_to_root`. No separate AutoGPT/Aider run.
+**Tools:** Cursor IDE agent (Grok) — plan mode, file edits, shell, browser verification, Railway/Supabase CLIs via MCP/shell. No separate AutoGPT/Aider run.
 
-**Delegated to the agent**
+**Delegated to the agent (most of the implementation)**
 
-- Monorepo scaffold (FastAPI + Next.js)
-- SQLAlchemy models, Alembic migration, outbox poller, Resend adapter
-- Supabase Auth wiring (`@supabase/ssr`, JWT dependency)
-- Public form + admin UI
-- Design / run / deploy docs drafts
+- Monorepo scaffold (FastAPI + Next.js), models, Alembic, outbox poller, Resend adapter
+- Supabase Auth wiring (`@supabase/ssr`, JWT dependency), public form + admin UI
+- Deploy/debug loops (Railway startCommand/`PORT`, ES256 JWKS auth, RLS migration)
+- Drafts of design / run / deploy / security docs
 
-**Written or steered by hand**
+**Written or steered by hand (product + correctness)**
 
-- Stack lock (Railway + Supabase + Resend + Postgres outbox)
-- Rejection of Celery/Redis; outbox + lifespan poller decision
-- Local fallbacks (`DEV_AUTH_BYPASS`, disk uploads) when Docker/Supabase were unavailable
-- Auth 401 vs 500 behavior for bad tokens without JWT secret
-- Resume download via authenticated fetch + blob (browser cannot attach Bearer on `<a href>`)
+- Stack lock: Railway + Supabase + Resend; reject Celery/Redis for v1 → Postgres outbox + lifespan poller
+- Shared-inbox / atomic `PENDING → REACHED_OUT` claim semantics
+- Auth failure must be **401** (not 500); production guards for `DEV_AUTH_BYPASS`
+- Resume open via authenticated fetch + blob (Bearer cannot ride on `<a href>`)
 
-**One place the agent got it subtly wrong**
+**One place the agent produced subtly bad code**
 
-Initial auth dependency returned **500** when `SUPABASE_JWT_SECRET` was empty and a non-dev token was presented — treating “not configured” as a server error. For a public API that should look like failed auth to clients (and not trip Railway error budgets), that was wrong. Caught with a curl smoke test (`Authorization: Bearer bad` expected 401). Fixed by returning 401 whenever verification cannot succeed, and only accepting `dev-token` under explicit non-production bypass.
+Initial `require_attorney` returned **500** when `SUPABASE_JWT_SECRET` was unset and a non-dev token arrived — treating misconfiguration as a server fault. For a public API that should fail closed as “not authenticated,” that was wrong (and noisy for error budgets). Caught with `curl -H "Authorization: Bearer bad"` expecting **401**. Fixed by returning 401 whenever verification cannot succeed; `dev-token` only under explicit non-production bypass.
 
-**Prompt / session excerpts**
+A second live catch: the agent first verified only HS256 with the JWT secret; production Supabase issued **ES256**. Admin list returned 401 for valid sessions. Fixed by reading the JWT `alg` and verifying via JWKS (with HS256 fallback).
 
-1. “Treat it as a light-weight production app… Resend… nail down BackgroundTasks <> Postgres outbox… Supabase deployability…”
+**Representative prompts**
+
+1. “Treat it as a light-weight production app… Resend… nail down BackgroundTasks vs Postgres outbox… Supabase deployability…”
 2. “Implement the plan as specified… mark todos in progress… don’t stop until all todos are completed.”
+3. “Flagging… Supabase shows no RLS… run a thorough security check… then apply the fix.”
 
-**Attribution:** see [NOTES.md](../NOTES.md).
+**Attribution:** [NOTES.md](../NOTES.md) (A/H/M tags by path).

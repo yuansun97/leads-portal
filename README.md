@@ -4,7 +4,7 @@ Public lead intake for prospects and an authenticated admin console for attorney
 
 **Stack:** Next.js (Vercel) · FastAPI (Railway) · Supabase (Postgres / Storage / Auth) · Resend
 
-**Live demo:** [Loom walkthrough](https://www.loom.com/share/9c957723c25c4fda8d8479a5d113f830) · **App:** https://leads-portal-eight.vercel.app · **Repo:** https://github.com/yuansun97/leads-portal
+**Live demo:** [Loom walkthrough](https://www.loom.com/share/2a2f4cf9eb6446e58bc729ea27cc1422) · **App:** https://leads-portal-eight.vercel.app · **Repo:** https://github.com/yuansun97/leads-portal
 
 ## Functionality
 
@@ -125,12 +125,7 @@ leads-portal/
 │           │   ├── api.ts            # API client helpers
 │           │   └── supabase/         # Browser/server/middleware clients
 │           └── middleware.ts         # Protect /admin/*
-├── docs/
-│   ├── DESIGN.md
-│   ├── SECURITY_AUDIT.md
-│   ├── RUN_LOCALLY.md
-│   ├── DEPLOY.md
-│   └── AGENT_USAGE.md
+├── docs/                             # See “Docs / submission” below
 ├── supabase/schema.sql               # Reference DDL for Supabase SQL editor
 ├── docker-compose.yml                # Optional local Postgres
 ├── NOTES.md                          # Agent vs hand-written attribution
@@ -143,11 +138,28 @@ leads-portal/
 - Follow create → `services/leads.py` → `services/outbox.py` → `main.py` lifespan for the write path.
 - Admin auth: `apps/web/src/middleware.ts` + `apps/api/app/core/security.py`.
 
-## Docs
+## Docs / submission
 
-- [Design](docs/DESIGN.md) — choices, sizing, caveats & risks
-- [Security audit](docs/SECURITY_AUDIT.md) — findings, remediations, remaining checklist
-- [Run locally](docs/RUN_LOCALLY.md)
-- [Deploy](docs/DEPLOY.md) — Vercel + Railway + Supabase + Resend
-- [Agent usage](docs/AGENT_USAGE.md)
-- [Attribution](NOTES.md)
+Assignment checklist → [docs/SUBMISSION.md](docs/SUBMISSION.md)
+
+| Required | Doc |
+|---|---|
+| Run locally | [docs/RUN_LOCALLY.md](docs/RUN_LOCALLY.md) |
+| Design | [docs/DESIGN.md](docs/DESIGN.md) |
+| Agent usage | [docs/AGENT_USAGE.md](docs/AGENT_USAGE.md) |
+| Attribution | [NOTES.md](NOTES.md) |
+| E2E video | [Loom](https://www.loom.com/share/2a2f4cf9eb6446e58bc729ea27cc1422) |
+
+Also: [Deploy](docs/DEPLOY.md) · [Security audit](docs/SECURITY_AUDIT.md)
+
+## Docs tree
+
+```
+docs/
+├── SUBMISSION.md       # Grader map (requirements → files)
+├── DESIGN.md
+├── RUN_LOCALLY.md
+├── AGENT_USAGE.md
+├── DEPLOY.md
+└── SECURITY_AUDIT.md
+```
