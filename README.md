@@ -13,7 +13,7 @@ Public lead intake for prospects and an authenticated admin console for attorney
 | Admin list | Attorneys see all lead fields, open resumes, and refresh the pipeline |
 | Status | Each lead starts as `PENDING`; attorney marks `REACHED_OUT` after outreach |
 | Storage | Resumes in private Supabase Storage (local `uploads/` in development) |
-| Auth | Supabase Auth for attorneys (JWT on API); `/login` + `/signup`. Public create stays open. Local `DEV_AUTH_BYPASS` is **not** production auth |
+| Auth | Supabase Auth for attorneys (JWT on API); public create stays open. Local `DEV_AUTH_BYPASS` is **not** production auth |
 | Shared inbox | All authenticated attorneys see all leads (per PRD). Claim fields prevent double `REACHED_OUT` |
 
 ## User flows
@@ -27,7 +27,7 @@ Public lead intake for prospects and an authenticated admin console for attorney
 
 ### Attorney
 
-1. Open `/login` (or `/signup` to create an account) with Supabase Auth (or local dev bypass).
+1. Open `/login` and sign in with a Supabase attorney account (or local dev bypass).
 2. Land on `/admin/leads`.
 3. Review name, email, resume, status, and submitted time.
 4. Open the resume (signed URL or authenticated local download).
