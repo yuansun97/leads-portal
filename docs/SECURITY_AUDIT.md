@@ -14,12 +14,12 @@ App data path is **FastAPI → Postgres via `DATABASE_URL`**. The browser anon k
 |---|---|---|
 | Critical | 0 | 1 |
 | High | 1 (residual: no CAPTCHA / edge WAF) | 3 |
-| Medium | 2 | 1 |
+| Medium | 1 | 2 |
 | Low | 1 | 0 |
 
 **Ramp gate (must-have):** cleared — RLS/revokes applied, signup disabled, bypass flags false in prod, in-process rate limit verified.
 
-**Before heavy marketing:** edge/WAF rate limit + CAPTCHA/Turnstile; set Auth Site URL to the Vercel origin; optional magic-byte resume sniff.
+**Before heavy marketing:** edge/WAF rate limit + CAPTCHA/Turnstile; optional magic-byte resume sniff.
 
 ---
 
@@ -45,7 +45,7 @@ App data path is **FastAPI → Postgres via `DATABASE_URL`**. The browser anon k
 |---|---|---|---|
 | M1 | Login `next=` open redirect | **Resolved** | `safeNextPath()` allows only `/admin…` same-origin paths. |
 | M2 | Resume validation is Content-Type only; signed URLs ~1h and shareable | **Open** | MIME allowlist + 10MB cap; no magic-byte sniff / AV. Keep `resumes` bucket private. |
-| M3 | Auth Site URL still `http://localhost:3000` | **Open** | Set Site URL + Redirect URLs to the production Vercel origin in Supabase Auth settings. |
+| M3 | Auth Site URL still `http://localhost:3000` | **Resolved** | Set to `https://leads-portal-eight.vercel.app` with redirect allowlist for that origin (+ localhost for local dev). |
 
 ### Low / Info
 
@@ -72,6 +72,8 @@ grant all on table public.email_outbox to postgres, service_role;
 | PostgREST deny | Anon `GET /rest/v1/leads` → 401 permission denied |
 | App path OK | Attorney `GET /api/v1/leads` → 200 |
 | Signup off | Auth `disable_signup=true` |
+| Auth Site URL | `https://leads-portal-eight.vercel.app` (+ redirect allowlist) |
+| Resumes bucket | `public=false`; anon object GET denied; service role OK |
 | Rate limit | Sixth `POST /leads` from same IP → 429 |
 | Bypass off | Railway + Vercel flags false; API guard on boot |
 
@@ -81,8 +83,8 @@ grant all on table public.email_outbox to postgres, service_role;
 
 | Item | Owner | Priority |
 |---|---|---|
-| Confirm `resumes` bucket is private (no public policies) | Supabase Storage | Verify |
-| Auth Site URL + redirect allowlist = Vercel production URL | Supabase Auth | Do soon |
+| Confirm `resumes` bucket is private (no public policies) | Supabase Storage | **Done** — `public=false`; anon public/authenticated object GET fails; service role GET succeeds |
+| Auth Site URL + redirect allowlist = Vercel production URL | Supabase Auth | **Done** — `https://leads-portal-eight.vercel.app` |
 | Edge/WAF rate limit + Turnstile/honeypot on public form | Vercel / Cloudflare | Before marketing |
 | Magic-byte sniff for PDF/DOCX | API | Nice to have |
 | Optional attorney role/allowlist claim in JWT | API + Auth | Nice to have |

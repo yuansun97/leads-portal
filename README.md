@@ -4,6 +4,8 @@ Public lead intake for prospects and an authenticated admin console for attorney
 
 **Stack:** Next.js (Vercel) · FastAPI (Railway) · Supabase (Postgres / Storage / Auth) · Resend
 
+**Live demo:** [Loom walkthrough](https://www.loom.com/share/9c957723c25c4fda8d8479a5d113f830) · **App:** https://leads-portal-eight.vercel.app · **Repo:** https://github.com/yuansun97/leads-portal
+
 ## Functionality
 
 | Area | What it does |

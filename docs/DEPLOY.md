@@ -16,9 +16,10 @@ Then continue with Supabase / Resend / Railway / Vercel below.
 1. Create a project.
 2. Apply schema: run Alembic against the database URL, or execute [`supabase/schema.sql`](../supabase/schema.sql) in the SQL editor.
 3. Storage → create private bucket `resumes` (MIME: PDF/DOC/DOCX, max 10MB).
-4. Auth → create attorney user(s) (email/password).
+4. Auth → create attorney user(s) (email/password). Disable public signup for production. Set Authentication → URL Configuration: Site URL = your Vercel origin; add the same origin under Redirect URLs.
 5. Settings → API: copy URL, anon key, service role key.
 6. Settings → API → JWT Secret (only needed for legacy HS256 projects).
+7. Storage → confirm `resumes` bucket is **private** (MIME: PDF/DOC/DOCX, max 10MB).
 
 **Database URL for Railway:** use the direct connection or session mode pooler (`postgresql+asyncpg://...`). Avoid transaction pooler for SQLAlchemy long-lived sessions.
 
