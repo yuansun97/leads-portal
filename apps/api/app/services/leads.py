@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -88,19 +89,69 @@ class LeadService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found")
         return lead
 
-    async def update_status(self, lead_id: uuid.UUID, new_status: LeadStatus) -> Lead:
+    async def update_status(
+        self,
+        lead_id: uuid.UUID,
+        new_status: LeadStatus,
+        *,
+        actor_id: str,
+        actor_email: str | None = None,
+    ) -> Lead:
+        """Claim PENDING → REACHED_OUT atomically for a shared attorney inbox.
+
+        Idempotent for the same attorney. Concurrent/other attorney gets 409.
+        """
+        if new_status != LeadStatus.REACHED_OUT:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only status REACHED_OUT is supported",
+            )
+
         lead = await self.get_lead(lead_id)
-        if lead.status == new_status:
-            return lead
-        if lead.status != LeadStatus.PENDING or new_status != LeadStatus.REACHED_OUT:
+
+        if lead.status == LeadStatus.REACHED_OUT:
+            if lead.reached_out_by == actor_id:
+                return lead
+            who = lead.reached_out_by_email or lead.reached_out_by or "another attorney"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Lead already marked reached out by {who}",
+            )
+
+        if lead.status != LeadStatus.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Only PENDING → REACHED_OUT transitions are allowed",
             )
-        lead.status = new_status
+
+        now = datetime.now(timezone.utc)
+        result = await self.session.execute(
+            update(Lead)
+            .where(Lead.id == lead_id, Lead.status == LeadStatus.PENDING)
+            .values(
+                status=LeadStatus.REACHED_OUT,
+                reached_out_by=actor_id,
+                reached_out_by_email=actor_email,
+                reached_out_at=now,
+                updated_at=now,
+            )
+            .returning(Lead)
+        )
+        claimed = result.scalar_one_or_none()
+        if claimed is None:
+            await self.session.rollback()
+            current = await self.get_lead(lead_id)
+            if current.status == LeadStatus.REACHED_OUT and current.reached_out_by == actor_id:
+                return current
+            who = current.reached_out_by_email or current.reached_out_by or "another attorney"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Lead already marked reached out by {who}",
+            )
+
         await self.session.commit()
-        await self.session.refresh(lead)
-        return lead
+        await self.session.refresh(claimed)
+        return claimed
 
     def to_response(self, lead: Lead, *, include_resume_url: bool = False) -> LeadResponse:
         resume_url = None
@@ -120,4 +171,7 @@ class LeadService:
             created_at=lead.created_at,
             updated_at=lead.updated_at,
             resume_url=resume_url,
+            reached_out_by=lead.reached_out_by,
+            reached_out_by_email=lead.reached_out_by_email,
+            reached_out_at=lead.reached_out_at,
         )

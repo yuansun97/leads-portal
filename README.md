@@ -13,7 +13,8 @@ Public lead intake for prospects and an authenticated admin console for attorney
 | Admin list | Attorneys see all lead fields, open resumes, and refresh the pipeline |
 | Status | Each lead starts as `PENDING`; attorney marks `REACHED_OUT` after outreach |
 | Storage | Resumes in private Supabase Storage (local `uploads/` in development) |
-| Auth | Supabase Auth for attorneys; public create stays unauthenticated |
+| Auth | Supabase Auth for attorneys (JWT on API); public create stays open. Local `DEV_AUTH_BYPASS` is **not** production auth |
+| Shared inbox | All authenticated attorneys see all leads (per PRD). Claim fields prevent double `REACHED_OUT` |
 
 ## User flows
 
@@ -80,7 +81,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-With `DEV_AUTH_BYPASS=true` and `NEXT_PUBLIC_DEV_AUTH_BYPASS=true`, use **Attorney login → Enter admin** (Bearer `dev-token`). Emails are logged when `EMAIL_ENABLED=false`.
+With `DEV_AUTH_BYPASS=true` and `NEXT_PUBLIC_DEV_AUTH_BYPASS=true`, use **Attorney login → Enter admin** (Bearer `dev-token`). That skips real Supabase Auth for local smoke tests only. Emails are logged when `EMAIL_ENABLED=false`.
+
+For real attorney login locally or in production: set Supabase URL/keys, create an Auth user, set both bypass flags to `false`, and sign in at `/login`.
 
 Full detail: [docs/RUN_LOCALLY.md](docs/RUN_LOCALLY.md) · Production: [docs/DEPLOY.md](docs/DEPLOY.md)
 

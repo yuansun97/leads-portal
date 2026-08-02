@@ -17,6 +17,10 @@ create table if not exists leads (
 create index if not exists ix_leads_email on leads (email);
 create index if not exists ix_leads_status on leads (status);
 
+alter table leads add column if not exists reached_out_by varchar(128);
+alter table leads add column if not exists reached_out_by_email varchar(320);
+alter table leads add column if not exists reached_out_at timestamptz;
+
 create table if not exists email_outbox (
   id uuid primary key,
   lead_id uuid not null references leads(id) on delete cascade,

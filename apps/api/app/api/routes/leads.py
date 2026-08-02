@@ -93,8 +93,17 @@ async def update_lead(
     lead_id: UUID,
     payload: LeadUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _user: Annotated[dict, Depends(require_attorney)],
+    user: Annotated[dict, Depends(require_attorney)],
 ) -> LeadResponse:
     service = LeadService(db)
-    lead = await service.update_status(lead_id, payload.status)
+    actor_id = str(user.get("sub") or user.get("email") or "unknown")
+    actor_email = user.get("email")
+    if isinstance(actor_email, list):
+        actor_email = actor_email[0] if actor_email else None
+    lead = await service.update_status(
+        lead_id,
+        payload.status,
+        actor_id=actor_id,
+        actor_email=str(actor_email) if actor_email else None,
+    )
     return service.to_response(lead, include_resume_url=True)

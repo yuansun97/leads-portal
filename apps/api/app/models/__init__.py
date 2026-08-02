@@ -47,6 +47,9 @@ class Lead(Base):
         default=LeadStatus.PENDING,
         index=True,
     )
+    reached_out_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    reached_out_by_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    reached_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

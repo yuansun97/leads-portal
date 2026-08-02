@@ -65,6 +65,7 @@ export default function AdminLeadsPage() {
       setLeads((current) => current.map((lead) => (lead.id === leadId ? updated : lead)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
+      await load();
     } finally {
       setUpdatingId(null);
     }
@@ -210,7 +211,11 @@ export default function AdminLeadsPage() {
                           {updatingId === lead.id ? "Saving…" : "Mark reached out"}
                         </button>
                       ) : (
-                        <span className="text-xs text-[var(--ink-soft)]">Done</span>
+                        <span className="text-xs text-[var(--ink-soft)]">
+                          {lead.reached_out_by_email
+                            ? `By ${lead.reached_out_by_email}`
+                            : "Done"}
+                        </span>
                       )}
                     </td>
                   </tr>

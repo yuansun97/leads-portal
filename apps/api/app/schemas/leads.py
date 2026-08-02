@@ -29,6 +29,9 @@ class LeadResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     resume_url: str | None = None
+    reached_out_by: str | None = None
+    reached_out_by_email: str | None = None
+    reached_out_at: datetime | None = None
 
 
 class LeadListResponse(BaseModel):

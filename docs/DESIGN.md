@@ -36,6 +36,29 @@ Peak create QPS ≈ 0.12. Design target ~10 QPS sustained. Bottlenecks are resum
 4. `BackgroundTasks` kicks immediate send; lifespan poller retries durable leftovers.
 5. Attorney lists leads; `PATCH` allows only `PENDING → REACHED_OUT`.
 
+## PRD interpretation: shared attorney inbox
+
+The assignment asks for an **internal UI guarded by auth** that lists leads, and a manual `PENDING → REACHED_OUT` transition after an attorney reaches out. It does **not** require per-attorney ownership, assignment queues, or prospect isolation between attorneys.
+
+**v1 model:** any authenticated attorney sees the full lead list (shared firm inbox). That matches the PRD wording.
+
+**Auth is implemented** (Supabase JWT on `GET/PATCH /leads*`, Next.js middleware on `/admin/*`). Locally it can look “missing” because `DEV_AUTH_BYPASS=true` accepts Bearer `dev-token` without a real login — that is **dev-only** and must be off in production (`ENVIRONMENT=production`, `DEV_AUTH_BYPASS=false`, real Supabase Auth users).
+
+### Concurrent attorneys (idempotency / double outreach)
+
+Shared inbox implies two attorneys can open the same `PENDING` lead.
+
+| Case | Behavior |
+|---|---|
+| Same attorney marks twice | Idempotent **200** — already claimed by them |
+| Two attorneys race | Single atomic `UPDATE … WHERE status = PENDING`; winner wins |
+| Loser / late click | **409** with who claimed it (`reached_out_by` / email) |
+| UI | Shows claimer email; refreshes list on 409 |
+
+Fields: `reached_out_by` (auth `sub`), `reached_out_by_email`, `reached_out_at`.
+
+This prevents double status writes; it does **not** stop both from emailing the prospect before either clicks — that would need soft-claim / “I’m working this” locking, which is out of PRD scope but a natural follow-up.
+
 ## Email: outbox vs BackgroundTasks
 
 Pure `BackgroundTasks` runs in the same uvicorn worker and is lost on crash/deploy. Rejected for production.

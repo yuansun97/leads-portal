@@ -11,6 +11,9 @@ export type Lead = {
   created_at: string;
   updated_at: string;
   resume_url?: string | null;
+  reached_out_by?: string | null;
+  reached_out_by_email?: string | null;
+  reached_out_at?: string | null;
 };
 
 export type LeadListResponse = {
@@ -27,14 +30,23 @@ function authHeaders(token?: string | null): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function readError(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    if (typeof data?.detail === "string") return data.detail;
+    return JSON.stringify(data);
+  } catch {
+    return (await response.text()) || "Request failed";
+  }
+}
+
 export async function submitLead(formData: FormData): Promise<Lead> {
   const response = await fetch(`${API_BASE}/api/v1/leads`, {
     method: "POST",
     body: formData,
   });
   if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || "Failed to submit lead");
+    throw new Error(await readError(response));
   }
   return response.json();
 }
@@ -45,7 +57,7 @@ export async function listLeads(token: string, page = 1): Promise<LeadListRespon
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Failed to load leads");
+    throw new Error(await readError(response));
   }
   return response.json();
 }
@@ -60,7 +72,7 @@ export async function markReachedOut(token: string, leadId: string): Promise<Lea
     body: JSON.stringify({ status: "REACHED_OUT" }),
   });
   if (!response.ok) {
-    throw new Error("Failed to update lead");
+    throw new Error(await readError(response));
   }
   return response.json();
 }
