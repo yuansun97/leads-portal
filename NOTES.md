@@ -15,6 +15,7 @@ Convention: **A** = primarily agent-generated · **H** = hand-directed / hand-fi
 | `docs/DEPLOY.md` | M | Agent draft; H Auth URL / private bucket checklist |
 | `docs/SECURITY_AUDIT.md` | M | Findings from review; remediations applied with agent |
 | `docs/AGENT_USAGE.md` | H | |
+| `docs/CHAT_HISTORY.md` | H | Shortened Q&A export from Cursor session |
 | `docs/SUBMISSION.md` | H | Grader map |
 | `supabase/schema.sql` | A | RLS + revoke included |
 | `docker-compose.yml` | A | |

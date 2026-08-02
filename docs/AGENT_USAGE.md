@@ -28,4 +28,5 @@ A second live catch: the agent first verified only HS256 with the JWT secret; pr
 2. “Implement the plan as specified… mark todos in progress… don’t stop until all todos are completed.”
 3. “Flagging… Supabase shows no RLS… run a thorough security check… then apply the fix.”
 
-**Attribution:** [NOTES.md](../NOTES.md) (A/H/M tags by path).
+**Attribution:** [NOTES.md](../NOTES.md) (A/H/M tags by path).  
+**Session excerpts (longer Q&A):** [CHAT_HISTORY.md](./CHAT_HISTORY.md).
