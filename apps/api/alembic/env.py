@@ -21,6 +21,8 @@ database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres
 sync_url = database_url.replace("postgresql+asyncpg://", "postgresql+psycopg://").replace(
     "postgres://", "postgresql+psycopg://"
 )
+# asyncpg uses ssl=require; psycopg expects sslmode=require
+sync_url = sync_url.replace("ssl=require", "sslmode=require")
 config.set_main_option("sqlalchemy.url", sync_url)
 
 
