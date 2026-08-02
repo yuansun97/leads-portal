@@ -1,20 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import { submitLead } from "@/lib/api";
+
+const MAX_RESUME_BYTES = 10 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set([".pdf", ".doc", ".docx"]);
+const ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+function resumeValidationError(file: File | null | undefined): string | null {
+  if (!file) return "Please choose a resume file.";
+  if (file.size === 0) return "Resume file is empty.";
+  if (file.size > MAX_RESUME_BYTES) {
+    return "Resume must be 10MB or smaller.";
+  }
+  const name = file.name.toLowerCase();
+  const ext = name.includes(".") ? `.${name.split(".").pop()}` : "";
+  const typeOk = !file.type || ALLOWED_TYPES.has(file.type);
+  const extOk = ALLOWED_EXTENSIONS.has(ext);
+  if (!typeOk && !extOk) {
+    return "Resume must be a PDF, DOC, or DOCX file.";
+  }
+  return null;
+}
 
 export default function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  function onResumeChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    const message = resumeValidationError(file);
+    setError(message);
+    if (message) {
+      event.target.value = "";
+    }
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
     setError(null);
     const form = event.currentTarget;
     const data = new FormData(form);
+    const resume = data.get("resume");
+    const file = resume instanceof File ? resume : null;
+    const message = resumeValidationError(file);
+    if (message) {
+      setError(message);
+      return;
+    }
+
+    setSubmitting(true);
     try {
       await submitLead(data);
       setDone(true);
@@ -131,8 +172,10 @@ export default function HomePage() {
                     type="file"
                     name="resume"
                     accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={onResumeChange}
                     className="w-full rounded-xl border border-dashed border-[var(--line)] bg-white/60 px-3 py-3 file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--paper-deep)] file:px-3 file:py-1.5 file:text-sm"
                   />
+                  <span className="text-xs text-[var(--ink-soft)]">PDF, DOC, or DOCX · max 10MB</span>
                 </label>
                 {error ? (
                   <p className="text-sm text-[var(--danger)]">{error}</p>
