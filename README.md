@@ -148,6 +148,7 @@ Assignment checklist → [docs/SUBMISSION.md](docs/SUBMISSION.md)
 | Design | [docs/DESIGN.md](docs/DESIGN.md) |
 | Agent usage | [docs/AGENT_USAGE.md](docs/AGENT_USAGE.md) |
 | Chat history (Q&A) | [docs/CHAT_HISTORY.md](docs/CHAT_HISTORY.md) |
+| Chat questions (raw) | [docs/CHAT_QUESTIONS_RAW.md](docs/CHAT_QUESTIONS_RAW.md) |
 | Attribution | [NOTES.md](NOTES.md) |
 | E2E video | [Loom](https://www.loom.com/share/2a2f4cf9eb6446e58bc729ea27cc1422) |
 
@@ -162,6 +163,7 @@ docs/
 ├── RUN_LOCALLY.md
 ├── AGENT_USAGE.md
 ├── CHAT_HISTORY.md     # Shortened agent session Q&A
+├── CHAT_QUESTIONS_RAW.md  # Unsummarized user questions
 ├── DEPLOY.md
 └── SECURITY_AUDIT.md
 ```

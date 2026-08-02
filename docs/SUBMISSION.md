@@ -11,6 +11,7 @@ E2E recording: **https://www.loom.com/share/2a2f4cf9eb6446e58bc729ea27cc1422**
 | Design document (why/how) | [`DESIGN.md`](./DESIGN.md) |
 | Coding-agent usage (½ page) | [`AGENT_USAGE.md`](./AGENT_USAGE.md) |
 | Chat excerpts (Q&A export) | [`CHAT_HISTORY.md`](./CHAT_HISTORY.md) |
+| Raw user questions | [`CHAT_QUESTIONS_RAW.md`](./CHAT_QUESTIONS_RAW.md) |
 | Attribution (agent vs hand) | [`NOTES.md`](../NOTES.md) |
 | Screen recording (E2E) | Loom link above (also in README) |
 
