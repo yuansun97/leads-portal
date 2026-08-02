@@ -1,0 +1,24 @@
+# A generic, single database configuration.
+# Prefer docker compose for local Postgres; Homebrew Postgres also works.
+
+services:
+  # optional - use if Docker is available
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: leads
+    ports:
+      - "5432:5432"
+    volumes:
+      - leads_pg_data:/var/lib/postgresql/data
+      - ./supabase/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leads"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  leads_pg_data:

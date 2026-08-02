@@ -1,0 +1,74 @@
+export type LeadStatus = "PENDING" | "REACHED_OUT";
+
+export type Lead = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  resume_filename: string;
+  resume_content_type: string;
+  status: LeadStatus;
+  created_at: string;
+  updated_at: string;
+  resume_url?: string | null;
+};
+
+export type LeadListResponse = {
+  items: Lead[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+function authHeaders(token?: string | null): HeadersInit {
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+export async function submitLead(formData: FormData): Promise<Lead> {
+  const response = await fetch(`${API_BASE}/api/v1/leads`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || "Failed to submit lead");
+  }
+  return response.json();
+}
+
+export async function listLeads(token: string, page = 1): Promise<LeadListResponse> {
+  const response = await fetch(`${API_BASE}/api/v1/leads?page=${page}&page_size=50`, {
+    headers: authHeaders(token),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load leads");
+  }
+  return response.json();
+}
+
+export async function markReachedOut(token: string, leadId: string): Promise<Lead> {
+  const response = await fetch(`${API_BASE}/api/v1/leads/${leadId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ status: "REACHED_OUT" }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update lead");
+  }
+  return response.json();
+}
+
+export function resolveResumeUrl(resumeUrl: string | null | undefined): string | null {
+  if (!resumeUrl) return null;
+  if (resumeUrl.startsWith("http")) return resumeUrl;
+  return `${API_BASE}${resumeUrl}`;
+}
+
+export { API_BASE };
