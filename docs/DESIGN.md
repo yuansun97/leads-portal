@@ -82,7 +82,7 @@ At this volume both work. Supabase wins on deployability (DB + Storage + Auth to
 
 ## Supabase Auth
 
-Email/password for attorneys. Next.js uses `@supabase/ssr`; API verifies HS256 JWT with `SUPABASE_JWT_SECRET` (audience `authenticated`). Public create stays open. Dev bypass (`DEV_AUTH_BYPASS` + Bearer `dev-token`) is local-only.
+Email/password for attorneys. Next.js uses `@supabase/ssr`; the API verifies the access token with audience `authenticated`. Supabase projects on asymmetric signing keys issue ES256 tokens verified against the project JWKS endpoint; legacy projects sign HS256 with `SUPABASE_JWT_SECRET`, and both paths are supported. Public create stays open. Dev bypass (`DEV_AUTH_BYPASS` + Bearer `dev-token`) is local-only.
 
 ## Security notes
 
