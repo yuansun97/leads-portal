@@ -143,6 +143,7 @@ leads-portal/
 ## Docs
 
 - [Design](docs/DESIGN.md) — choices, sizing, caveats & risks
+- [Security audit](docs/SECURITY_AUDIT.md) — findings, remediations, remaining checklist
 - [Run locally](docs/RUN_LOCALLY.md)
 - [Deploy](docs/DEPLOY.md) — Vercel + Railway + Supabase + Resend
 - [Agent usage](docs/AGENT_USAGE.md)

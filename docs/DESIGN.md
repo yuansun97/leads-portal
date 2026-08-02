@@ -114,10 +114,10 @@ Email/password for attorneys. Next.js uses `@supabase/ssr`; the API verifies the
 
 ### Spam and abuse
 
-- No CAPTCHA, IP rate limit, or email verification before accept.
-- Attackers can fill storage and trigger email volume (Resend cost / reputation).
-- **Add before public marketing traffic:** edge rate limit (e.g. Vercel/Railway/WAF), honeypot or Turnstile, and optional confirmation email before attorney notify.
-- API also applies an in-process limit on `POST /leads` (default 5/IP/min and 10/email/hour per replica). This is a first line of defense, not a substitute for edge rate limiting under sustained attack.
+- No CAPTCHA or email verification before accept.
+- In-process API rate limits apply on `POST /leads` (default 5/IP/min and 10/email/hour per replica) — first line of defense only.
+- Attackers can still fill storage and trigger email volume under distributed attack (Resend cost / reputation).
+- **Add before public marketing traffic:** edge rate limit (e.g. Vercel/Cloudflare/WAF), honeypot or Turnstile, and optional confirmation email before attorney notify.
 - Resend domain reputation: monitor bounces/complaints; keep transactional stream clean.
 
 ### System bottlenecks
