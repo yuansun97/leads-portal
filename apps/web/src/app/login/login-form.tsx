@@ -105,6 +105,15 @@ export default function LoginPage() {
           {loading ? "Signing in…" : useDevAuth && !canUseSupabase ? "Enter admin" : "Sign in"}
         </button>
       </form>
+
+      {canUseSupabase || !useDevAuth ? (
+        <p className="mt-6 text-sm text-[var(--ink-soft)]">
+          New attorney?{" "}
+          <Link href="/signup" className="font-medium text-[var(--accent)] hover:underline">
+            Create an account
+          </Link>
+        </p>
+      ) : null}
     </main>
   );
 }

@@ -31,3 +31,5 @@ apps/web/.env
 *.log
 dist/
 build/
+.secrets/
+supabase/.temp/

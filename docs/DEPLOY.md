@@ -16,9 +16,9 @@ Then continue with Supabase / Resend / Railway / Vercel below.
 1. Create a project.
 2. Apply schema: run Alembic against the database URL, or execute [`supabase/schema.sql`](../supabase/schema.sql) in the SQL editor.
 3. Storage → create private bucket `resumes` (MIME: PDF/DOC/DOCX, max 10MB).
-4. Auth → create attorney user(s) (email/password).
+4. Auth → enable Email provider. Attorneys can self-register at `/signup`, or create users in the dashboard. If **Confirm email** is on, add your Vercel URL under Authentication → URL Configuration (`Site URL` + Redirect URLs).
 5. Settings → API: copy URL, anon key, service role key.
-6. Settings → API → JWT Secret.
+6. Settings → API → JWT Secret (only needed for legacy HS256 projects).
 
 **Database URL for Railway:** use the direct connection or session mode pooler (`postgresql+asyncpg://...`). Avoid transaction pooler for SQLAlchemy long-lived sessions.
 
@@ -69,6 +69,7 @@ NEXT_PUBLIC_DEV_AUTH_BYPASS=false
 
 - [ ] Public form submits a lead
 - [ ] Prospect + attorney emails arrive (or show as `sent` in `email_outbox`)
+- [ ] Signup at `/signup` creates an attorney (or email-confirm flow works)
 - [ ] Login with Supabase attorney works
 - [ ] Admin list shows the lead; resume opens via signed URL
 - [ ] Mark reached out transitions status
