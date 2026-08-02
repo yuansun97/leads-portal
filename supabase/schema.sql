@@ -42,6 +42,15 @@ create index if not exists ix_email_outbox_lead_id on email_outbox (lead_id);
 create index if not exists ix_email_outbox_status on email_outbox (status);
 create index if not exists ix_email_outbox_next_attempt_at on email_outbox (next_attempt_at);
 
+-- PostgREST exposure: deny anon/authenticated by default.
+-- App traffic uses DATABASE_URL (privileged role), not the anon key.
+alter table public.leads enable row level security;
+alter table public.email_outbox enable row level security;
+revoke all on table public.leads from anon, authenticated;
+revoke all on table public.email_outbox from anon, authenticated;
+grant all on table public.leads to postgres, service_role;
+grant all on table public.email_outbox to postgres, service_role;
+
 -- Storage: create a private bucket named "resumes" in the Supabase dashboard
 -- with allowed MIME types PDF/DOC/DOCX and a 10MB file size limit.
 -- API uses the service role key and does not rely on Storage RLS for uploads.

@@ -102,6 +102,8 @@ Email/password for attorneys. Next.js uses `@supabase/ssr`; the API verifies the
 
 ### Security
 
+- **Postgres tables are not exposed via PostgREST.** `leads` and `email_outbox` have RLS enabled with no anon/authenticated policies, and table privileges are revoked from those roles. The app uses `DATABASE_URL` (privileged role), not the browser anon key, for SQL.
+- Public signup should stay **disabled** in Supabase Auth (invite-only attorneys). Any `authenticated` JWT is still treated as an attorney by the API — keep Auth invite-only.
 - Public `POST /leads` is unauthenticated by design — treat it as an attack surface (see spam below).
 - Service role key bypasses Storage RLS; a leak is critical. Keep it only on Railway; rotate if exposed.
 - Signed resume URLs expire (default ~1h) but are shareable while valid; avoid logging them.
