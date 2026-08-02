@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     supabase_resumes_bucket: str = "resumes"
     local_upload_dir: str = "uploads"
 
+    @property
+    def supabase_jwks_url(self) -> str:
+        if not self.supabase_url:
+            return ""
+        return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+
     resend_api_key: str = ""
     resend_from: str = "Leads Portal <onboarding@resend.dev>"
     attorney_notify_email: str = "attorney@example.com"
