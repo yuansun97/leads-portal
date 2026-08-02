@@ -21,6 +21,7 @@ export type LeadListResponse = {
   total: number;
   page: number;
   page_size: number;
+  total_pages: number;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -51,8 +52,16 @@ export async function submitLead(formData: FormData): Promise<Lead> {
   return response.json();
 }
 
-export async function listLeads(token: string, page = 1): Promise<LeadListResponse> {
-  const response = await fetch(`${API_BASE}/api/v1/leads?page=${page}&page_size=50`, {
+export async function listLeads(
+  token: string,
+  page = 1,
+  pageSize = 20,
+): Promise<LeadListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  const response = await fetch(`${API_BASE}/api/v1/leads?${params}`, {
     headers: authHeaders(token),
     cache: "no-store",
   });

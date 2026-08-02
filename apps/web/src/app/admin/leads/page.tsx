@@ -11,6 +11,8 @@ import {
 } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
+const PAGE_SIZE = 20;
+
 async function getAccessToken(): Promise<string | null> {
   if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
     const dev = localStorage.getItem("leads_dev_token");
@@ -29,32 +31,39 @@ export default function AdminLeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        router.push("/login?next=/admin/leads");
-        return;
+  const load = useCallback(
+    async (pageToLoad: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          router.push("/login?next=/admin/leads");
+          return;
+        }
+        const data = await listLeads(token, pageToLoad, PAGE_SIZE);
+        setLeads(data.items);
+        setTotal(data.total);
+        setPage(data.page);
+        setTotalPages(data.total_pages);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load leads");
+      } finally {
+        setLoading(false);
       }
-      const data = await listLeads(token);
-      setLeads(data.items);
-      setTotal(data.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load leads");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+    },
+    [router],
+  );
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(page);
+  }, [load, page]);
 
   async function onMarkReachedOut(leadId: string) {
     setUpdatingId(leadId);
@@ -65,7 +74,7 @@ export default function AdminLeadsPage() {
       setLeads((current) => current.map((lead) => (lead.id === leadId ? updated : lead)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
-      await load();
+      await load(page);
     } finally {
       setUpdatingId(null);
     }
@@ -81,6 +90,9 @@ export default function AdminLeadsPage() {
     }
     router.push("/login");
   }
+
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-10">
@@ -102,7 +114,7 @@ export default function AdminLeadsPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void load(page)}
             className="rounded-xl border border-[var(--line)] bg-white/70 px-4 py-2 text-sm font-medium"
           >
             Refresh
@@ -128,102 +140,131 @@ export default function AdminLeadsPage() {
           No leads yet. Share the public form to collect the first submission.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[rgba(255,252,246,0.8)]">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-[var(--line)] text-[var(--ink-soft)]">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Resume</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Submitted</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => {
-                return (
-                  <tr key={lead.id} className="border-b border-[var(--line)] last:border-0">
-                    <td className="px-4 py-3 font-medium">
-                      {lead.first_name} {lead.last_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <a className="hover:text-[var(--accent)]" href={`mailto:${lead.email}`}>
-                        {lead.email}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        className="font-medium text-[var(--accent)] hover:underline"
-                        onClick={async () => {
-                          const token = await getAccessToken();
-                          if (!token) return;
-                          const detailRes = await fetch(
-                            `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/leads/${lead.id}`,
-                            { headers: { Authorization: `Bearer ${token}` } },
-                          );
-                          if (!detailRes.ok) return;
-                          const detail = (await detailRes.json()) as Lead;
-                          const href = resolveResumeUrl(detail.resume_url);
-                          if (!href) return;
-                          if (href.startsWith("http") && !href.includes("/api/v1/leads/files/")) {
-                            window.open(href, "_blank", "noopener,noreferrer");
-                            return;
-                          }
-                          const fileRes = await fetch(href, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                          if (!fileRes.ok) return;
-                          const blob = await fileRes.blob();
-                          const objectUrl = URL.createObjectURL(blob);
-                          window.open(objectUrl, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        {lead.resume_filename}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                        style={{
-                          background:
-                            lead.status === "PENDING"
-                              ? "rgba(138,90,0,0.12)"
-                              : "rgba(15,110,86,0.12)",
-                          color: lead.status === "PENDING" ? "var(--pending)" : "var(--reached)",
-                        }}
-                      >
-                        {lead.status === "PENDING" ? "Pending" : "Reached out"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--ink-soft)]">
-                      {new Date(lead.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      {lead.status === "PENDING" ? (
+        <>
+          <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[rgba(255,252,246,0.8)]">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-[var(--line)] text-[var(--ink-soft)]">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Name</th>
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Resume</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Submitted</th>
+                  <th className="px-4 py-3 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((lead) => {
+                  return (
+                    <tr key={lead.id} className="border-b border-[var(--line)] last:border-0">
+                      <td className="px-4 py-3 font-medium">
+                        {lead.first_name} {lead.last_name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <a className="hover:text-[var(--accent)]" href={`mailto:${lead.email}`}>
+                          {lead.email}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3">
                         <button
                           type="button"
-                          disabled={updatingId === lead.id}
-                          onClick={() => void onMarkReachedOut(lead.id)}
-                          className="rounded-lg bg-[var(--ink)] px-3 py-1.5 text-xs font-semibold text-[var(--paper)] disabled:opacity-50"
+                          className="font-medium text-[var(--accent)] hover:underline"
+                          onClick={async () => {
+                            const token = await getAccessToken();
+                            if (!token) return;
+                            const detailRes = await fetch(
+                              `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/leads/${lead.id}`,
+                              { headers: { Authorization: `Bearer ${token}` } },
+                            );
+                            if (!detailRes.ok) return;
+                            const detail = (await detailRes.json()) as Lead;
+                            const href = resolveResumeUrl(detail.resume_url);
+                            if (!href) return;
+                            if (href.startsWith("http") && !href.includes("/api/v1/leads/files/")) {
+                              window.open(href, "_blank", "noopener,noreferrer");
+                              return;
+                            }
+                            const fileRes = await fetch(href, {
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+                            if (!fileRes.ok) return;
+                            const blob = await fileRes.blob();
+                            const objectUrl = URL.createObjectURL(blob);
+                            window.open(objectUrl, "_blank", "noopener,noreferrer");
+                          }}
                         >
-                          {updatingId === lead.id ? "Saving…" : "Mark reached out"}
+                          {lead.resume_filename}
                         </button>
-                      ) : (
-                        <span className="text-xs text-[var(--ink-soft)]">
-                          {lead.reached_out_by_email
-                            ? `By ${lead.reached_out_by_email}`
-                            : "Done"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                          style={{
+                            background:
+                              lead.status === "PENDING"
+                                ? "rgba(138,90,0,0.12)"
+                                : "rgba(15,110,86,0.12)",
+                            color: lead.status === "PENDING" ? "var(--pending)" : "var(--reached)",
+                          }}
+                        >
+                          {lead.status === "PENDING" ? "Pending" : "Reached out"}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[var(--ink-soft)]">
+                        {new Date(lead.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.status === "PENDING" ? (
+                          <button
+                            type="button"
+                            disabled={updatingId === lead.id}
+                            onClick={() => void onMarkReachedOut(lead.id)}
+                            className="rounded-lg bg-[var(--ink)] px-3 py-1.5 text-xs font-semibold text-[var(--paper)] disabled:opacity-50"
+                          >
+                            {updatingId === lead.id ? "Saving…" : "Mark reached out"}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-[var(--ink-soft)]">
+                            {lead.reached_out_by_email
+                              ? `By ${lead.reached_out_by_email}`
+                              : "Done"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--ink-soft)]">
+            <p>
+              Showing {rangeStart}–{rangeEnd} of {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                className="rounded-xl border border-[var(--line)] bg-white/70 px-3 py-1.5 font-medium disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="min-w-[7rem] text-center">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                className="rounded-xl border border-[var(--line)] bg-white/70 px-3 py-1.5 font-medium disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </main>
   );

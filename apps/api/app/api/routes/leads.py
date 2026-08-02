@@ -9,6 +9,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     status,
@@ -63,18 +64,22 @@ async def create_lead(
 async def list_leads(
     db: Annotated[AsyncSession, Depends(get_db)],
     _user: Annotated[dict, Depends(require_attorney)],
-    page: int = 1,
-    page_size: int = 20,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> LeadListResponse:
-    page = max(page, 1)
-    page_size = min(max(page_size, 1), 100)
     service = LeadService(db)
     items, total = await service.list_leads(page, page_size)
+    total_pages = max(1, (total + page_size - 1) // page_size) if total else 1
+    # If the client asks past the last page, clamp by re-fetching the last page.
+    if total > 0 and page > total_pages:
+        page = total_pages
+        items, total = await service.list_leads(page, page_size)
     return LeadListResponse(
         items=[service.to_response(item, include_resume_url=True) for item in items],
         total=total,
         page=page,
         page_size=page_size,
+        total_pages=total_pages,
     )
 
 
