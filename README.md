@@ -125,6 +125,7 @@ leads-portal/
 │           └── middleware.ts         # Protect /admin/*
 ├── docs/
 │   ├── DESIGN.md
+│   ├── SECURITY_AUDIT.md
 │   ├── RUN_LOCALLY.md
 │   ├── DEPLOY.md
 │   └── AGENT_USAGE.md
